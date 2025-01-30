@@ -5,6 +5,17 @@ import (
 	"strings"
 )
 
+type LinkedListInterface[T comparable] interface {
+	Add(value *T)
+	AddFirst(value *T)
+	Remove(value *T)
+	TraverseForward() <-chan T
+	TraverseBackward() <-chan T
+	String() string
+}
+
+var _ LinkedListInterface[int] = (*DoublyLinkedList[int])(nil)
+
 type Node[T comparable] struct {
 	Value      T
 	Prev, Next *Node[T]
@@ -14,6 +25,37 @@ type DoublyLinkedList[T comparable] struct {
 	Head *Node[T]
 	Tail *Node[T]
 	Size int
+}
+
+type LinkedList[T comparable] struct {
+	Head *Node[T]
+	Size int
+}
+
+func (list *DoublyLinkedList[T]) TraverseForward() <-chan T {
+	ch := make(chan T)
+	go func() {
+		defer close(ch)
+		current := list.Head
+		for current != nil {
+			ch <- current.Value
+			current = current.Next
+		}
+	}()
+	return ch
+}
+
+func (list *DoublyLinkedList[T]) TraverseBackward() <-chan T {
+	ch := make(chan T)
+	go func() {
+		defer close(ch)
+		current := list.Tail
+		for current != nil {
+			ch <- current.Value
+			current = current.Prev
+		}
+	}()
+	return ch
 }
 
 func (list *DoublyLinkedList[T]) Add(value *T) {
@@ -29,8 +71,8 @@ func (list *DoublyLinkedList[T]) Add(value *T) {
 	list.Size++
 }
 
-func (list *DoublyLinkedList[T]) AddFirst(value T) {
-	newNode := &Node[T]{Value: value}
+func (list *DoublyLinkedList[T]) AddFirst(value *T) {
+	newNode := &Node[T]{Value: *value}
 	if list.Size == 0 {
 		list.Head = newNode
 		list.Tail = newNode
@@ -77,8 +119,4 @@ func (list *DoublyLinkedList[T]) String() string {
 
 	sb.WriteString("]")
 	return sb.String()
-}
-
-func main() {
-	fmt.Println("hello world")
 }
