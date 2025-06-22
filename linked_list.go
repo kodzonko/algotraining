@@ -14,6 +14,7 @@ type LinkedListInterface[T comparable] interface {
 	String() string
 }
 
+// Verify at compile time that DoublyLinkedList implements LinkedListInterface
 var _ LinkedListInterface[int] = (*DoublyLinkedList[int])(nil)
 
 type Node[T comparable] struct {
@@ -21,22 +22,26 @@ type Node[T comparable] struct {
 	Prev, Next *Node[T]
 }
 
+type LinkedList[T comparable] struct {
+	Head *Node[T]
+	Size int
+}
+
+// Verify at compile time that LinkedList implements LinkedListInterface
+var _ LinkedListInterface[int] = (*LinkedList[int])(nil)
+
 type DoublyLinkedList[T comparable] struct {
 	Head *Node[T]
 	Tail *Node[T]
 	Size int
 }
 
-type LinkedList[T comparable] struct {
-	Head *Node[T]
-	Size int
-}
-
-func (list *DoublyLinkedList[T]) TraverseForward() <-chan T {
+// Common traversal function for both list types
+func traverseForward[T comparable](head *Node[T]) <-chan T {
 	ch := make(chan T)
 	go func() {
 		defer close(ch)
-		current := list.Head
+		current := head
 		for current != nil {
 			ch <- current.Value
 			current = current.Next
@@ -45,6 +50,17 @@ func (list *DoublyLinkedList[T]) TraverseForward() <-chan T {
 	return ch
 }
 
+// Lazily traverse the list in forward direction
+func (list *LinkedList[T]) TraverseForward() <-chan T {
+	return traverseForward(list.Head)
+}
+
+// Lazily traverse the list in forward direction
+func (list *DoublyLinkedList[T]) TraverseForward() <-chan T {
+	return traverseForward(list.Head)
+}
+
+// Lazily traverse the list in backward direction
 func (list *DoublyLinkedList[T]) TraverseBackward() <-chan T {
 	ch := make(chan T)
 	go func() {
